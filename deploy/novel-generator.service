@@ -1,0 +1,42 @@
+[Unit]
+Description=码字成书 - 小说生成器服务
+Documentation=https://github.com/tswdt/novel-generator
+After=network.target postgresql.service redis.service docker.service
+Requires=docker.service
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/root/novel-generator
+
+# 环境变量
+Environment="ENV=production"
+Environment="COMPOSE_PROJECT_NAME=novel-generator"
+
+# 启动命令
+ExecStartPre=-/usr/bin/docker-compose down
+ExecStartPre=-/usr/bin/docker-compose pull
+ExecStart=/usr/bin/docker-compose up
+
+# 停止命令
+ExecStop=/usr/bin/docker-compose down
+ExecStopPost=-/usr/bin/docker-compose rm -f
+
+# 重启策略
+Restart=always
+RestartSec=5
+StartLimitInterval=60s
+StartLimitBurst=3
+
+# 资源限制
+LimitCPU=200%
+LimitMEMLOCK=4G
+LimitNOFILE=65536
+
+# 日志配置
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=novel-generator
+
+[Install]
+WantedBy=multi-user.target

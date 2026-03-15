@@ -1,15 +1,18 @@
 import httpx
 import json
+import asyncio
 from typing import Dict, List, Optional
 from config import settings
 from prompts import get_prompt
 from config_manager import config_manager
+from cache import cache_manager
 
 class AIService:
     def __init__(self):
         self.api_key = settings.AI_MODEL_API_KEY
         self.api_url = settings.AI_MODEL_API_URL
         self.model_name = settings.AI_MODEL_NAME
+        self.cache = cache_manager
     
     def _get_api_key(self, model: str = None) -> str:
         """获取 API Key，优先从配置管理器获取"""
@@ -21,16 +24,27 @@ class AIService:
         # 否则使用默认配置
         return self.api_key
     
-    # ==================== 分步骤生成功能 ====================
+    # ==================== 分步骤生成功能（带缓存） ====================
     
     async def generate_title_suggestions(self, description: str, genre: str) -> Dict:
-        """步骤1: 生成书名建议"""
+        """步骤1: 生成书名建议（带缓存）"""
+        # 先查缓存
+        cached = self.cache.get_title_suggestions(description, genre)
+        if cached:
+            return {**cached, "cached": True}
+        
         prompt = get_prompt(
             "TITLE_SUGGESTION_PROMPT",
             description=description,
             genre=genre
         )
-        return await self._call_api_with_fallback(prompt, "书名生成失败")
+        result = await self._call_api_with_fallback(prompt, "书名生成失败")
+        
+        # 缓存结果
+        if result.get("success"):
+            self.cache.set_title_suggestions(description, genre, result)
+        
+        return result
     
     async def generate_description(self, title: str, description: str, genre: str) -> Dict:
         """步骤2: 生成爆款简介"""
@@ -100,10 +114,15 @@ class AIService:
         )
         return await self._call_api_with_fallback(prompt, "分卷细纲生成失败")
     
-    # ==================== 原有功能 ====================
+    # ==================== 原有功能（带缓存） ====================
     
-    async def generate_novel_outline(self, title: str, description: str, genre: str) -> Dict:
-        """一键生成完整大纲（使用步骤1-7的组合）"""
+    async def generate_novel_outline(self, title: str, description: str, genre: str, user_id: int = 0) -> Dict:
+        """一键生成完整大纲（带缓存）"""
+        # 先查缓存
+        cached = self.cache.get_novel_outline(title, genre, user_id)
+        if cached:
+            return {**cached, "cached": True}
+        
         try:
             # 依次调用各步骤
             step1 = await self.generate_title_suggestions(description, genre)
@@ -141,12 +160,22 @@ class AIService:
 【7 分卷细纲】
 {step7.get('data', '细纲生成失败')}"""
             
-            return {"success": True, "data": full_outline}
+            result = {"success": True, "data": full_outline}
+            
+            # 缓存结果
+            self.cache.set_novel_outline(title, genre, user_id, result)
+            
+            return result
         except Exception as e:
             return {"success": False, "error": str(e)}
     
-    async def generate_chapter(self, novel_context: str, chapter_outline: str, chapter_number: int) -> Dict:
-        """生成章节正文"""
+    async def generate_chapter(self, novel_context: str, chapter_outline: str, chapter_number: int, novel_id: int = 0) -> Dict:
+        """生成章节正文（带缓存）"""
+        # 先查缓存
+        cached = self.cache.get_chapter_content(novel_id, chapter_number)
+        if cached:
+            return {**cached, "cached": True}
+        
         prompt = get_prompt(
             "CHAPTER_GENERATION_PROMPT",
             title=novel_context,
@@ -154,7 +183,13 @@ class AIService:
             chapter_number=chapter_number,
             chapter_outline=chapter_outline
         )
-        return await self._call_api_with_fallback(prompt, "章节生成失败")
+        result = await self._call_api_with_fallback(prompt, "章节生成失败")
+        
+        # 缓存结果
+        if result.get("success") and novel_id > 0:
+            self.cache.set_chapter_content(novel_id, chapter_number, result)
+        
+        return result
     
     # ==================== 智能编辑器功能 ====================
     
@@ -194,7 +229,7 @@ class AIService:
         # 动态获取当前模型的 API Key
         self.api_key = self._get_api_key()
         
-        async with httpx.AsyncClient(timeout=300.0) as client:
+        async with httpx.AsyncClient(timeout=settings.AI_TIMEOUT) as client:
             if self.model_name == "zhipu":
                 return await self._call_zhipu(client, prompt)
             elif self.model_name == "qwen":

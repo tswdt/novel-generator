@@ -1,14 +1,42 @@
+# ============================================
+# 码字成书 - Python依赖包
+# ============================================
+
+# Web框架
 fastapi==0.104.1
-uvicorn==0.24.0
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+
+# 数据库
 sqlalchemy==2.0.23
 psycopg2-binary==2.9.9
+alembic==1.12.1
+
+# 数据验证
 pydantic==2.5.0
 pydantic-settings==2.1.0
+
+# 认证与安全
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.6
+
+# HTTP客户端
 httpx==0.25.1
+
+# 缓存
 redis==5.0.1
+
+# 任务队列
 celery==5.3.4
-alembic==1.12.1
+
+# 环境变量
 python-dotenv==1.0.0
+
+# 生产环境优化
+# 注意：在Windows上安装uvloop可能会失败，Linux/macOS推荐安装
+# uvloop==0.19.0
+
+# 监控（可选）
+# prometheus-client==0.19.0
+# sentry-sdk==1.38.0

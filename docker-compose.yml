@@ -1,50 +1,115 @@
+# ============================================
+# 码字成书 - Docker Compose 配置 (生产优化版)
+# 适配: 2核4G服务器
+# ============================================
+
 version: '3.8'
 
 services:
+  # PostgreSQL数据库
   postgres:
     image: postgres:14-alpine
     container_name: novel-generator-db
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
       POSTGRES_DB: novel_generator
+      # 性能优化参数
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      # 挂载自定义配置文件
+      - ./backend/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c config_file=/etc/postgresql/postgresql.conf
     networks:
       - novel-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'      # 限制0.5核
+          memory: 512M     # 限制512MB内存
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # Redis缓存服务
   redis:
     image: redis:6-alpine
     container_name: novel-generator-redis
     ports:
       - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
     networks:
       - novel-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'     # 限制0.25核
+          memory: 128M     # 限制128MB内存
+        reservations:
+          cpus: '0.1'
+          memory: 64M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  # 后端服务
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: novel-generator-backend
     environment:
-      DATABASE_URL: postgresql://postgres:password@postgres:5432/novel_generator
-      SECRET_KEY: your-secret-key-change-in-production
-      AI_MODEL_API_KEY: ${AI_MODEL_API_KEY}
-      AI_MODEL_API_URL: ${AI_MODEL_API_URL}
-      AI_MODEL_NAME: ${AI_MODEL_NAME}
+      ENV: production
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:-password}@postgres:5432/novel_generator
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      AI_MODEL_API_KEY: ${AI_MODEL_API_KEY:-}
+      AI_MODEL_API_URL: ${AI_MODEL_API_URL:-}
+      AI_MODEL_NAME: ${AI_MODEL_NAME:-zhipu}
       REDIS_URL: redis://redis:6379/0
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     ports:
       - "8000:8000"
     depends_on:
-      - postgres
-      - redis
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
     networks:
       - novel-network
     volumes:
-      - ./backend:/app
+      - ./backend/logs:/app/logs
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'      # 限制1.0核（AI调用耗CPU）
+          memory: 2G       # 限制2GB内存
+        reservations:
+          cpus: '0.5'
+          memory: 1G
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
+  # 前端服务
   frontend:
     build:
       context: ./frontend
@@ -52,20 +117,63 @@ services:
     container_name: novel-generator-frontend
     environment:
       NEXT_PUBLIC_API_URL: http://localhost:8000
+      NODE_ENV: production
     ports:
       - "3000:3000"
     depends_on:
       - backend
     networks:
       - novel-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'      # 限制0.5核
+          memory: 512M     # 限制512MB内存
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Nginx反向代理 (可选，用于生产环境)
+  nginx:
+    image: nginx:alpine
+    container_name: novel-generator-nginx
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./preview:/usr/share/nginx/html/preview:ro
+    depends_on:
+      - frontend
+      - backend
+    networks:
+      - novel-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 128M
+    restart: unless-stopped
+    profiles:
+      - production  # 仅在production profile时启动
 
 volumes:
   postgres_data:
+    driver: local
+  redis_data:
+    driver: local
 
 networks:
   novel-network:
     driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

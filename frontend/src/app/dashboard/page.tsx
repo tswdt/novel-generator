@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import { Layout, Button, Card, List, Modal, Form, Input, Select, message, Spin, Tag, Space, Typography } from 'antd';
 import { PlusOutlined, BookOutlined, DeleteOutlined, EyeOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useAuth } from '@/contexts/AuthContext';
@@ -10,6 +11,17 @@ import { novelsAPI } from '@/lib/api';
 const { Header, Content, Sider } = Layout;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+
+// 懒加载非首屏组件，减少首屏加载体积
+const NovelPreview = dynamic(() => import('@/components/NovelPreview'), {
+  loading: () => <Card><Spin tip="加载预览组件..." /></Card>,
+  ssr: false  // 客户端渲染，减少服务端压力
+});
+
+const AIGenerationPanel = dynamic(() => import('@/components/AIGenerationPanel'), {
+  loading: () => <Card><Spin tip="加载AI组件..." /></Card>,
+  ssr: false
+});
 
 interface Novel {
   id: number;
@@ -43,6 +55,7 @@ export default function DashboardPage() {
   const [chapterModalVisible, setChapterModalVisible] = useState(false);
   const [selectedChapter, setSelectedChapter] = useState<Chapter | null>(null);
   const [outline, setOutline] = useState<string>('');
+  const [showAIPanel, setShowAIPanel] = useState(false);
   const [form] = Form.useForm();
 
   useEffect(() => {
@@ -142,11 +155,20 @@ export default function DashboardPage() {
   const handleSelectNovel = (novel: Novel) => {
     setSelectedNovel(novel);
     fetchChapters(novel.id);
+    // 选择小说时显示AI面板
+    setShowAIPanel(true);
   };
 
   const handleViewChapter = (chapter: Chapter) => {
     setSelectedChapter(chapter);
     setChapterModalVisible(true);
+  };
+
+  const handleGenerationComplete = (data: any) => {
+    if (selectedNovel) {
+      fetchChapters(selectedNovel.id);
+      fetchNovels();
+    }
   };
 
   const genreOptions = [
@@ -161,11 +183,17 @@ export default function DashboardPage() {
     { value: '鉴宝神医', label: '鉴宝神医' },
   ];
 
+  // 计算生成进度
+  const calculateProgress = () => {
+    if (!selectedNovel || selectedNovel.total_chapters === 0) return 0;
+    return Math.round((selectedNovel.generated_chapters / selectedNovel.total_chapters) * 100);
+  };
+
   return (
     <Layout style={{ minHeight: '100vh' }}>
       <Header style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#001529' }}>
         <div style={{ color: 'white', fontSize: '20px', fontWeight: 'bold' }}>
-          <BookOutlined /> 番茄小说生成器
+          <BookOutlined /> 码字成书
         </div>
         <Space>
           <span style={{ color: 'white' }}>余额: ¥{user?.balance.toFixed(2)}</span>
@@ -197,32 +225,14 @@ export default function DashboardPage() {
                 onClick={() => handleSelectNovel(novel)}
               >
                 <List.Item.Meta
-                  title={
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text strong>{novel.title}</Text>
-                      <Button 
-                        type="text" 
-                        danger 
-                        icon={<DeleteOutlined />} 
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteNovel(novel.id);
-                        }}
-                      />
-                    </div>
-                  }
+                  title={novel.title}
                   description={
-                    <div>
-                      <Tag color="blue">{novel.genre}</Tag>
-                      <Tag color={novel.status === 'completed' ? 'green' : 'orange'}>
-                        {novel.status === 'completed' ? '已完成' : '生成中'}
-                      </Tag>
-                      <br />
-                      <Text type="secondary">
-                        {novel.generated_chapters}/{novel.total_chapters}章 · {novel.word_count}字
+                    <Space direction="vertical" size={0}>
+                      <Tag size="small">{novel.genre}</Tag>
+                      <Text type="secondary" style={{ fontSize: '12px' }}>
+                        {novel.generated_chapters}/{novel.total_chapters}章
                       </Text>
-                    </div>
+                    </Space>
                   }
                 />
               </List.Item>
@@ -232,39 +242,80 @@ export default function DashboardPage() {
 
         <Content style={{ padding: '24px', background: '#f0f2f5' }}>
           {selectedNovel ? (
-            <div>
-              <Card 
+            <>
+              <Card
                 title={selectedNovel.title}
                 extra={
                   <Space>
+                    <Tag color={selectedNovel.status === 'completed' ? 'success' : 'processing'}>
+                      {selectedNovel.status === 'completed' ? '已完成' : '生成中'}
+                    </Tag>
                     <Button 
                       icon={<ReloadOutlined />} 
                       onClick={() => handleGenerateOutline(selectedNovel.id)}
                       loading={loading}
                     >
-                      生成大纲
+                      重新生成大纲
+                    </Button>
+                    <Button 
+                      icon={<DeleteOutlined />} 
+                      danger 
+                      onClick={() => handleDeleteNovel(selectedNovel.id)}
+                    >
+                      删除
                     </Button>
                   </Space>
                 }
               >
-                <p>{selectedNovel.description}</p>
+                <div style={{ marginBottom: '16px' }}>
+                  <Text strong>简介：</Text>
+                  <Text>{selectedNovel.description}</Text>
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <Text strong>字数：</Text>
+                  <Text>{selectedNovel.word_count.toLocaleString()}</Text>
+                </div>
+                <div style={{ marginBottom: '16px' }}>
+                  <Text strong>章节：</Text>
+                  <Text>{selectedNovel.generated_chapters}/{selectedNovel.total_chapters}</Text>
+                </div>
+
                 {outline && (
                   <div style={{ marginTop: '16px' }}>
-                    <Title level={5}>小说大纲</Title>
+                    <Text strong>大纲：</Text>
                     <div style={{ 
-                      background: '#f5f5f5', 
+                      background: '#f6ffed', 
                       padding: '16px', 
-                      borderRadius: '4px',
+                      borderRadius: '8px',
+                      marginTop: '8px',
                       maxHeight: '300px',
-                      overflow: 'auto'
+                      overflow: 'auto',
+                      whiteSpace: 'pre-wrap'
                     }}>
-                      <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit' }}>
-                        {outline}
-                      </pre>
+                      {outline}
                     </div>
                   </div>
                 )}
               </Card>
+
+              {/* 懒加载的AI生成面板 */}
+              {showAIPanel && (
+                <AIGenerationPanel 
+                  novelId={selectedNovel.id.toString()}
+                  onGenerationComplete={handleGenerationComplete}
+                />
+              )}
+
+              {/* 懒加载的小说预览组件 */}
+              {showAIPanel && (
+                <NovelPreview 
+                  novelId={selectedNovel.id.toString()}
+                  title={selectedNovel.title}
+                  genre={selectedNovel.genre}
+                  description={selectedNovel.description}
+                  progress={calculateProgress()}
+                />
+              )}
 
               <Card title="章节列表" style={{ marginTop: '16px' }}>
                 <List
@@ -273,60 +324,41 @@ export default function DashboardPage() {
                     <List.Item
                       actions={[
                         <Button 
-                          type="link" 
+                          key="view" 
                           icon={<EyeOutlined />}
                           onClick={() => handleViewChapter(chapter)}
                         >
                           查看
+                        </Button>,
+                        <Button
+                          key="regenerate"
+                          icon={<ReloadOutlined />}
+                          onClick={() => handleGenerateChapter(selectedNovel.id, chapter.chapter_number, '')}
+                          loading={loading}
+                        >
+                          重新生成
                         </Button>
                       ]}
                     >
                       <List.Item.Meta
-                        title={chapter.title}
-                        description={`${chapter.word_count}字 · ${new Date(chapter.created_at).toLocaleDateString()}`}
+                        title={`第${chapter.chapter_number}章 ${chapter.title}`}
+                        description={`${chapter.word_count}字 · ${new Date(chapter.created_at).toLocaleString()}`}
                       />
                     </List.Item>
                   )}
                 />
               </Card>
-
-              <Card title="生成新章节" style={{ marginTop: '16px' }}>
-                <Form
-                  onFinish={(values) => handleGenerateChapter(selectedNovel.id, values.chapter_number, values.chapter_outline)}
-                >
-                  <Form.Item
-                    name="chapter_number"
-                    label="章节序号"
-                    rules={[{ required: true, message: '请输入章节序号' }]}
-                  >
-                    <Input type="number" placeholder="例如：1" />
-                  </Form.Item>
-                  <Form.Item
-                    name="chapter_outline"
-                    label="章节细纲"
-                    rules={[{ required: true, message: '请输入章节细纲' }]}
-                  >
-                    <TextArea rows={4} placeholder="请输入本章的剧情概要..." />
-                  </Form.Item>
-                  <Form.Item>
-                    <Button type="primary" htmlType="submit" loading={loading}>
-                      生成章节
-                    </Button>
-                  </Form.Item>
-                </Form>
-              </Card>
-            </div>
+            </>
           ) : (
-            <Card>
-              <div style={{ textAlign: 'center', padding: '48px' }}>
-                <BookOutlined style={{ fontSize: '64px', color: '#d9d9d9' }} />
-                <p style={{ marginTop: '16px', color: '#999' }}>请选择或创建一部小说开始创作</p>
-              </div>
-            </Card>
+            <div style={{ textAlign: 'center', padding: '100px 0' }}>
+              <BookOutlined style={{ fontSize: '64px', color: '#d9d9d9' }} />
+              <p style={{ marginTop: '16px', color: '#999' }}>请选择或创建一部小说</p>
+            </div>
           )}
         </Content>
       </Layout>
 
+      {/* 创建小说弹窗 */}
       <Modal
         title="创建新小说"
         open={createModalVisible}
@@ -343,45 +375,42 @@ export default function DashboardPage() {
           </Form.Item>
           <Form.Item
             name="genre"
-            label="题材类型"
-            rules={[{ required: true, message: '请选择题材类型' }]}
+            label="题材"
+            rules={[{ required: true, message: '请选择题材' }]}
           >
-            <Select options={genreOptions} placeholder="请选择题材类型" />
+            <Select options={genreOptions} placeholder="请选择题材" />
           </Form.Item>
           <Form.Item
             name="description"
-            label="剧情概要"
-            rules={[{ required: true, message: '请输入剧情概要' }]}
+            label="简介"
+            rules={[{ required: true, message: '请输入简介' }]}
           >
-            <TextArea rows={4} placeholder="请简要描述您的小说创意..." />
-          </Form.Item>
-          <Form.Item
-            name="total_chapters"
-            label="计划章节数"
-            initialValue={20}
-          >
-            <Input type="number" placeholder="默认20章" />
+            <TextArea rows={4} placeholder="请输入简介" />
           </Form.Item>
           <Form.Item>
-            <Button type="primary" htmlType="submit" block loading={loading}>
+            <Button type="primary" htmlType="submit" loading={loading} block>
               创建
             </Button>
           </Form.Item>
         </Form>
       </Modal>
 
+      {/* 查看章节弹窗 */}
       <Modal
         title={selectedChapter?.title}
         open={chapterModalVisible}
         onCancel={() => setChapterModalVisible(false)}
-        footer={null}
         width={800}
+        footer={null}
       >
         <div style={{ 
-          maxHeight: '60vh', 
+          background: '#f6ffed', 
+          padding: '16px', 
+          borderRadius: '8px',
+          maxHeight: '500px',
           overflow: 'auto',
           whiteSpace: 'pre-wrap',
-          lineHeight: '2'
+          lineHeight: '1.8'
         }}>
           {selectedChapter?.content}
         </div>
