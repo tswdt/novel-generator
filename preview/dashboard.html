@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>工作台 - 码字成书</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            background: #f7f8fa;
+            color: #1f2329;
+            overflow: hidden;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 240px;
+            background: linear-gradient(180deg, #1a1a3e 0%, #0d0d26 100%);
+            display: flex;
+            flex-direction: column;
+            color: #fff;
+            flex-shrink: 0;
+        }
+        
+        .sidebar-header {
+            padding: 20px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        
+        .sidebar-title {
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .sidebar-nav {
+            flex: 1;
+            padding: 16px 8px;
+            overflow-y: auto;
+        }
+        
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-bottom: 4px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        
+        .nav-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            color: #fff;
+        }
+        
+        .nav-item.active {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        
+        .nav-item .icon {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+        }
+        
+        .nav-item .text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .sidebar-bottom {
+            padding: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        
+        .quick-start-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        
+        .quick-start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        .topbar {
+            height: 64px;
+            background: #fff;
+            border-bottom: 1px solid #e8e8e8;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+        }
+        
+        .topbar-left {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .page-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2329;
+        }
+        
+        .topbar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .model-selector {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f7f8fa;
+            border-radius: 8px;
+        }
+        
+        .model-selector label {
+            font-size: 13px;
+            color: #86909c;
+        }
+        
+        .model-selector select {
+            padding: 4px 8px;
+            border: none;
+            background: transparent;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2329;
+            cursor: pointer;
+            outline: none;
+        }
+        
+        .topbar-icons {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .icon-btn {
+            width: 36px;
+            height: 36px;
+            border: none;
+            background: transparent;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            transition: all 0.2s;
+        }
+        
+        .icon-btn:hover {
+            background: #f7f8fa;
+        }
+        
+        .content-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+        
+        .project-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 24px;
+        }
+        
+        .project-tabs {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+        
+        .tab-btn {
+            padding: 8px 16px;
+            border: 1px solid #e8e8e8;
+            background: #fff;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #1f2329;
+        }
+        
+        .tab-btn:hover {
+            background: #f7f8fa;
+        }
+        
+        .tab-btn.active {
+            background: #1f2329;
+            color: #fff;
+            border-color: #1f2329;
+        }
+        
+        .project-actions {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+        
+        .action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .action-btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        
+        .action-btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .action-btn-secondary {
+            background: #fff;
+            color: #1f2329;
+            border: 1px solid #e8e8e8;
+        }
+        
+        .action-btn-secondary:hover {
+            background: #f7f8fa;
+        }
+        
+        .empty-state {
+            background: #fff;
+            border: 1px dashed #d9d9d9;
+            border-radius: 12px;
+            padding: 80px 24px;
+            text-align: center;
+        }
+        
+        .empty-icon {
+            width: 80px;
+            height: 80px;
+            background: #f7f8fa;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            margin: 0 auto 20px;
+        }
+        
+        .empty-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1f2329;
+            margin-bottom: 8px;
+        }
+        
+        .empty-desc {
+            font-size: 14px;
+            color: #86909c;
+            margin-bottom: 24px;
+        }
+        
+        .create-first-btn {
+            padding: 12px 24px;
+            background: #1f2329;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+        }
+        
+        .create-first-btn:hover {
+            background: #333;
+            transform: translateY(-1px);
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal.active {
+            display: flex;
+        }
+        
+        .modal-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 520px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+        
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #1f2329;
+        }
+        
+        .modal-close {
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #f7f8fa;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            color: #86909c;
+        }
+        
+        .modal-close:hover {
+            background: #e8e8e8;
+            color: #1f2329;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: #1f2329;
+            margin-bottom: 8px;
+        }
+        
+        .form-input,
+        .form-select,
+        .form-textarea {
+            width: 100%;
+            padding: 12px 16px;
+            border: 1px solid #e8e8e8;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #1f2329;
+            transition: all 0.2s;
+            font-family: inherit;
+        }
+        
+        .form-input:focus,
+        .form-select:focus,
+        .form-textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .form-textarea {
+            min-height: 120px;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        
+        .channel-selector {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+        }
+        
+        .channel-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+        }
+        
+        .channel-option:hover {
+            border-color: #3b82f6;
+            background: #f0f7ff;
+        }
+        
+        .channel-option.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+        
+        .channel-icon {
+            font-size: 20px;
+        }
+        
+        .channel-text {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .genre-tag {
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+            color: #374151;
+        }
+        
+        .genre-tag:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #f0f7ff;
+        }
+        
+        .genre-tag.active {
+            border-color: #3b82f6;
+            background: #3b82f6;
+            color: #fff;
+        }
+        
+        .more-settings {
+            background: #f8fafc;
+            border-radius: 12px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+        
+        .more-settings-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 16px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .more-settings-header:hover {
+            background: #f1f5f9;
+        }
+        
+        .more-settings-icon {
+            font-size: 12px;
+            color: #64748b;
+            transition: transform 0.2s;
+        }
+        
+        .more-settings.expanded .more-settings-icon {
+            transform: rotate(180deg);
+        }
+        
+        .more-settings-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .more-settings-tag {
+            font-size: 12px;
+            color: #3b82f6;
+            background: #eff6ff;
+            padding: 2px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+        }
+        
+        .more-settings-hint {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-left: auto;
+        }
+        
+        .more-settings-content {
+            padding: 0 16px 16px;
+            display: none;
+        }
+        
+        .more-settings.expanded .more-settings-content {
+            display: block;
+        }
+        
+        .word-count-input {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 0 12px;
+        }
+        
+        .word-count-input .form-input {
+            border: none;
+            padding: 12px 0;
+            flex: 1;
+            text-align: right;
+        }
+        
+        .word-count-icon {
+            font-size: 16px;
+        }
+        
+        .word-count-unit {
+            font-size: 14px;
+            color: #6b7280;
+        }
+        
+        .label-hint {
+            font-size: 12px;
+            color: #9ca3af;
+            font-weight: normal;
+            margin-left: 8px;
+        }
+        
+        .sub-genre-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 8px;
+        }
+        
+        .sub-genre-tag {
+            padding: 8px 16px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: #fff;
+            color: #374151;
+        }
+        
+        .sub-genre-tag:hover {
+            border-color: #3b82f6;
+            color: #3b82f6;
+            background: #f0f7ff;
+        }
+        
+        .sub-genre-tag.active {
+            border-color: #3b82f6;
+            background: #3b82f6;
+            color: #fff;
+        }
+        
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-cancel {
+            background: #f7f8fa;
+            color: #1f2329;
+        }
+        
+        .btn-cancel:hover {
+            background: #e8e8e8;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .footer-bar {
+            padding: 12px 24px;
+            background: #fff;
+            border-top: 1px solid #e8e8e8;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 12px;
+            color: #86909c;
+            flex-shrink: 0;
+        }
+        
+        .footer-links {
+            display: flex;
+            gap: 16px;
+        }
+        
+        .footer-links a {
+            color: #667eea;
+            text-decoration: none;
+        }
+        
+        .footer-links a:hover {
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 1024px) {
+            .sidebar {
+                width: 200px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                left: -240px;
+                top: 0;
+                height: 100vh;
+                z-index: 100;
+                transition: left 0.3s;
+            }
+            
+            .sidebar.open {
+                left: 0;
+            }
+            
+            .content-area {
+                padding: 16px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="sidebar-logo">📚</div>
+                <div class="sidebar-title">码字成书</div>
+            </div>
+            
+            <nav class="sidebar-nav">
+                <div class="nav-item active" onclick="showSection('novels')">
+                    <span class="icon">📖</span>
+                    <span class="text">我的小说</span>
+                </div>
+                <div class="nav-item" onclick="showSection('outline')">
+                    <span class="icon">📋</span>
+                    <span class="text">大纲生成</span>
+                </div>
+                <div class="nav-item" onclick="showSection('characters')">
+                    <span class="icon">👥</span>
+                    <span class="text">智能配图</span>
+                </div>
+                <div class="nav-item" onclick="showSection('world')">
+                    <span class="icon">🌍</span>
+                    <span class="text">提示词库</span>
+                </div>
+                <div class="nav-item" onclick="showSection('editor')">
+                    <span class="icon">✏️</span>
+                    <span class="text">工具箱</span>
+                </div>
+                <div class="nav-item" onclick="showSection('prompts')">
+                    <span class="icon">💡</span>
+                    <span class="text">智能体</span>
+                </div>
+                <div class="nav-item" onclick="showSection('projects')">
+                    <span class="icon">📁</span>
+                    <span class="text">工作流</span>
+                </div>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="icon">⚙️</span>
+                    <span class="text">拆书仿写</span>
+                </div>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="icon">📊</span>
+                    <span class="text">智能分析</span>
+                </div>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="icon">📚</span>
+                    <span class="text">知识管理</span>
+                </div>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="icon">💰</span>
+                    <span class="text">经验分享</span>
+                </div>
+                <div class="nav-item" onclick="showSection('settings')">
+                    <span class="icon">📈</span>
+                    <span class="text">AI排行榜</span>
+                </div>
+            </nav>
+            
+            <div class="sidebar-bottom">
+                <button class="quick-start-btn" onclick="showCreateModal()">
+                    <span>+</span>
+                    <span>创建第一部作品</span>
+                </button>
+            </div>
+        </aside>
+        
+        <div class="main-container">
+            <header class="topbar">
+                <div class="topbar-left">
+                    <div class="page-title">我的小说</div>
+                </div>
+                
+                <div class="topbar-right">
+                    <div class="model-selector">
+                        <label>🤖</label>
+                        <select id="modelSelect" onchange="changeModel()">
+                            <option value="zhipu">智谱AI (GLM-4)</option>
+                            <option value="qwen">通义千问 (Qwen)</option>
+                            <option value="deepseek">DeepSeek-V3</option>
+                            <option value="doubao">豆包 (Doubao)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="topbar-icons">
+                        <button class="icon-btn" title="搜索">🔍</button>
+                        <button class="icon-btn" title="通知">🔔</button>
+                        <button class="icon-btn" title="设置">⚙️</button>
+                        <button class="icon-btn" title="用户">👤</button>
+                    </div>
+                </div>
+            </header>
+            
+            <main class="content-area" id="mainContent">
+                <div class="project-header">
+                    <div class="project-tabs">
+                        <button class="tab-btn active">全部</button>
+                        <button class="tab-btn">进行中</button>
+                        <button class="tab-btn">已完成</button>
+                        <button class="icon-btn" title="新建文件夹">+</button>
+                    </div>
+                    
+                    <div class="project-actions">
+                        <button class="action-btn action-btn-secondary">导入</button>
+                        <button class="action-btn action-btn-secondary" onclick="showCreateModal()">📋 整论创建</button>
+                        <button class="action-btn action-btn-primary" onclick="showCreateModal()">+ 新建作品</button>
+                    </div>
+                </div>
+                
+                <div class="empty-state">
+                    <div class="empty-icon">📄</div>
+                    <div class="empty-title">暂无进行中的作品</div>
+                    <div class="empty-desc">开始您的创作之前，记录每一个灵感瞬间</div>
+                    <button class="create-first-btn" onclick="showCreateModal()">
+                        <span>+</span>
+                        <span>创建第一部作品</span>
+                    </button>
+                </div>
+            </main>
+            
+            <footer class="footer-bar">
+                <div class="footer-links">
+                    <a href="#">关于我们</a>
+                    <a href="#">用户协议</a>
+                </div>
+                <div>
+                    闪绘速写: 1.0.0 | <a href="#" style="color: #667eea;">更新日志</a>
+                </div>
+            </footer>
+        </div>
+    </div>
+    
+    <div class="modal" id="createModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-title">创建新小说</div>
+                <button class="modal-close" onclick="hideCreateModal()">×</button>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">小说标题 <span style="color: #ef4444;">*</span></label>
+                <input type="text" class="form-input" id="novelTitle" placeholder="给您的作品起个响亮的名字">
+                <div style="margin-top: 8px; font-size: 12px; color: #6b7280; display: flex; align-items: center; gap: 6px;">
+                    <span style="color: #3b82f6;">ⓘ</span>
+                    <span>只需填写书名，即可开始创作！其他信息可稍后补充</span>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">频道类型</label>
+                <div class="channel-selector">
+                    <div class="channel-option active" data-channel="male" onclick="selectChannel('male')">
+                        <span class="channel-icon">👨</span>
+                        <span class="channel-text">男频</span>
+                    </div>
+                    <div class="channel-option" data-channel="female" onclick="selectChannel('female')">
+                        <span class="channel-icon">👩</span>
+                        <span class="channel-text">女频</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">题材类型</label>
+                <div class="genre-tags" id="genreTags">
+                    <!-- 题材标签将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <!-- 更多设置折叠区域 -->
+            <div class="more-settings">
+                <div class="more-settings-header" onclick="toggleMoreSettings()">
+                    <span class="more-settings-icon">▼</span>
+                    <span class="more-settings-text">更多设置</span>
+                    <span class="more-settings-tag">选填 · 不影响后续AI生成</span>
+                    <span class="more-settings-hint">仅用于数据归档</span>
+                </div>
+                <div class="more-settings-content" id="moreSettingsContent">
+                    <div class="form-group">
+                        <label class="form-label">目标字数 <span class="label-hint">默认100万</span></label>
+                        <div class="word-count-input">
+                            <span class="word-count-icon">📝</span>
+                            <input type="number" class="form-input" id="targetWordCount" value="1000000" min="10000" max="10000000" step="10000">
+                            <span class="word-count-unit">字</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">作品类型 <span class="label-hint">选填</span></label>
+                        <div class="sub-genre-tags" id="subGenreTags">
+                            <span class="sub-genre-tag">长篇</span>
+                            <span class="sub-genre-tag">中篇</span>
+                            <span class="sub-genre-tag">短篇</span>
+                            <span class="sub-genre-tag">连载</span>
+                            <span class="sub-genre-tag">完结</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label">作品简介 <span style="color: #9ca3af; font-size: 12px; font-weight: normal;">选填</span></label>
+                <textarea class="form-textarea" id="novelDescription" placeholder="请简要描述您的小说创意..."></textarea>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn btn-cancel" onclick="hideCreateModal()">取消</button>
+                <button class="btn btn-primary" onclick="createNovel()">✓ 创建小说</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentModel = localStorage.getItem('selectedModel') || 'zhipu';
+        
+        function initModelSelector() {
+            const select = document.getElementById('modelSelect');
+            if (select) {
+                select.value = currentModel;
+            }
+        }
+        
+        // 男频题材列表
+        const maleGenres = ['科幻末世', '都市日常', '都市修真', '都市高武', '奇幻仙侠', '历史古代', '战神赘婿', '都市种田', '传统玄幻', '历史脑洞', '悬疑脑洞', '都市脑洞', '玄幻脑洞', '悬疑灵异', '抗战谍战', '游戏体育', '动漫衍生', '男频衍生'];
+        
+        // 女频题材列表
+        const femaleGenres = ['现代言情', '古代言情', '玄幻言情', '悬疑恋爱', '游戏竞技', '现实生活', '豪门总裁', '穿越重生', '宫斗宅斗', '甜宠文', '虐恋情深', '种田文', '快穿文', '系统文'];
+        
+        let currentChannel = 'male';
+        let selectedGenre = '';
+        let selectedSubGenre = '';
+        
+        function toggleMoreSettings() {
+            const moreSettings = document.querySelector('.more-settings');
+            moreSettings.classList.toggle('expanded');
+        }
+        
+        function selectSubGenre(genre) {
+            selectedSubGenre = genre;
+            
+            // 更新标签样式
+            document.querySelectorAll('.sub-genre-tag').forEach(tag => {
+                tag.classList.remove('active');
+                if (tag.textContent === genre) {
+                    tag.classList.add('active');
+                }
+            });
+        }
+        
+        // 初始化子类型标签点击事件
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.sub-genre-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    selectSubGenre(this.textContent);
+                });
+            });
+        });
+        
+        function selectChannel(channel) {
+            currentChannel = channel;
+            
+            // 更新频道选择器样式
+            document.querySelectorAll('.channel-option').forEach(opt => {
+                opt.classList.remove('active');
+            });
+            document.querySelector(`.channel-option[data-channel="${channel}"]`).classList.add('active');
+            
+            // 更新题材标签
+            updateGenreTags();
+        }
+        
+        function updateGenreTags() {
+            const genreTags = document.getElementById('genreTags');
+            const genres = currentChannel === 'male' ? maleGenres : femaleGenres;
+            
+            genreTags.innerHTML = genres.map(genre => 
+                `<span class="genre-tag ${genre === selectedGenre ? 'active' : ''}" onclick="selectGenre('${genre}', event)">${genre}</span>`
+            ).join('');
+        }
+        
+        function selectGenre(genre, event) {
+            selectedGenre = genre;
+            
+            // 更新标签样式
+            document.querySelectorAll('.genre-tag').forEach(tag => {
+                tag.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+        
+        function changeModel() {
+            const select = document.getElementById('modelSelect');
+            currentModel = select.value;
+            localStorage.setItem('selectedModel', currentModel);
+        }
+        
+        function showSection(section) {
+            const navItems = document.querySelectorAll('.nav-item');
+            navItems.forEach(item => item.classList.remove('active'));
+            event.target.closest('.nav-item').classList.add('active');
+        }
+        
+        function showCreateModal() {
+            document.getElementById('createModal').classList.add('active');
+        }
+        
+        function hideCreateModal() {
+            document.getElementById('createModal').classList.remove('active');
+        }
+        
+        async function createNovel() {
+            const title = document.getElementById('novelTitle').value;
+            const description = document.getElementById('novelDescription').value;
+            const targetWordCount = document.getElementById('targetWordCount').value;
+            
+            if (!title) {
+                alert('请填写小说标题');
+                return;
+            }
+            
+            try {
+                const response = await fetch('http://localhost:8000/novels/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        title: title,
+                        channel: currentChannel,
+                        genre: selectedGenre || (currentChannel === 'male' ? maleGenres[0] : femaleGenres[0]),
+                        sub_genre: selectedSubGenre,
+                        target_word_count: parseInt(targetWordCount),
+                        description: description
+                    })
+                });
+                
+                if (response.ok) {
+                    alert('创建成功！');
+                    hideCreateModal();
+                    document.getElementById('novelTitle').value = '';
+                    document.getElementById('novelDescription').value = '';
+                    document.getElementById('targetWordCount').value = '1000000';
+                    selectedGenre = '';
+                    selectedSubGenre = '';
+                    updateGenreTags();
+                    // 重置子类型标签
+                    document.querySelectorAll('.sub-genre-tag').forEach(tag => {
+                        tag.classList.remove('active');
+                    });
+                }
+            } catch (error) {
+                console.error('创建小说失败:', error);
+                alert('创建失败，请重试');
+            }
+        }
+        
+        initModelSelector();
+        updateGenreTags();
+    </script>
+</body>
+</html>

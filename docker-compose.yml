@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:14-alpine
+    container_name: novel-generator-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: novel_generator
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - novel-network
+
+  redis:
+    image: redis:6-alpine
+    container_name: novel-generator-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - novel-network
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: novel-generator-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:password@postgres:5432/novel_generator
+      SECRET_KEY: your-secret-key-change-in-production
+      AI_MODEL_API_KEY: ${AI_MODEL_API_KEY}
+      AI_MODEL_API_URL: ${AI_MODEL_API_URL}
+      AI_MODEL_NAME: ${AI_MODEL_NAME}
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8000:8000"
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - novel-network
+    volumes:
+      - ./backend:/app
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: novel-generator-frontend
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - novel-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
+
+networks:
+  novel-network:
+    driver: bridge
