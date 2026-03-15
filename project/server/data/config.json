@@ -1,0 +1,86 @@
+{
+  "defaultModel": "doubao",
+  "llmProviders": {
+    "doubao": {
+      "enabled": true,
+      "apiKey": "",
+      "baseUrl": ""
+    },
+    "deepseek": {
+      "enabled": true,
+      "apiKey": "",
+      "baseUrl": ""
+    },
+    "kimi": {
+      "enabled": true,
+      "apiKey": "",
+      "baseUrl": ""
+    },
+    "glm": {
+      "enabled": true,
+      "apiKey": "",
+      "baseUrl": ""
+    }
+  },
+  "imageProvider": {
+    "enabled": false,
+    "apiKey": "",
+    "baseUrl": ""
+  },
+  "nodes": [
+    {
+      "key": "start",
+      "name": "开始",
+      "model": "global",
+      "systemPrompt": "你是小说创作流程总控，输出简短启动确认。"
+    },
+    {
+      "key": "title",
+      "name": "书名",
+      "model": "global",
+      "systemPrompt": "根据用户输入给出适合网文平台传播的书名建议，并确定最终书名。"
+    },
+    {
+      "key": "intro",
+      "name": "简介",
+      "model": "global",
+      "systemPrompt": "生成有吸引力、冲突明确、钩子强的小说简介。"
+    },
+    {
+      "key": "world",
+      "name": "世界观",
+      "model": "global",
+      "systemPrompt": "输出世界观设定，包含时代背景、规则体系与冲突来源。"
+    },
+    {
+      "key": "hero",
+      "name": "主角",
+      "model": "global",
+      "systemPrompt": "设计主角成长线、能力、弱点、驱动力和关键反差。"
+    },
+    {
+      "key": "characters",
+      "name": "人物",
+      "model": "global",
+      "systemPrompt": "设计主要配角与反派，写明关系网与剧情作用。"
+    },
+    {
+      "key": "outline",
+      "name": "大纲",
+      "model": "global",
+      "systemPrompt": "输出分阶段剧情大纲，包含核心转折和高潮安排。"
+    },
+    {
+      "key": "detail",
+      "name": "细纲",
+      "model": "global",
+      "systemPrompt": "输出可直接写作的分卷分章细纲，强调节奏和悬念。"
+    },
+    {
+      "key": "end",
+      "name": "结束",
+      "model": "global",
+      "systemPrompt": "总结本次创作成果，提醒可继续扩写正文。"
+    }
+  ]
+}
